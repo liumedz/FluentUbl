@@ -1,0 +1,206 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using InExchange.CustomerSpecific.OrderConverters.Incoming.PyramidOrder.Model;
+using InExchange.Format.Order;
+using InExchange.Format.UBL;
+using OrderBuilder;
+
+namespace InExchange.CustomerSpecific.OrderConverters.Incoming.PyramidOrder
+{
+  public class PyramidIncomingOrderBuilder : IncomingOrderBuilder
+  {
+    private Model.PyramidOrder _pyramidOrder;
+
+    public PyramidIncomingOrderBuilder(string fileContentString)
+    {
+      _pyramidOrder = Deserialize(fileContentString);
+    }
+
+    private Model.PyramidOrder Deserialize(string fileContentString)
+    {
+      var lines = fileContentString.Split(new string[] {"\r", "\n"}, StringSplitOptions.None);
+      Model.PyramidOrder order = new Model.PyramidOrder();
+      PyramidOrderItem orderItem = new PyramidOrderItem();
+      string currentSection = "";
+      foreach (var line in lines)
+      {
+        var item = line.Split(';');
+        if (line == "01" || line == "02" || line == "11" || line == "12")
+        {
+          if (line == "11")
+          {
+            orderItem = new PyramidOrderItem();
+            order.Items.Add(orderItem);
+          }
+          currentSection = line;
+          continue;
+        }
+
+        switch (currentSection)
+        {
+          case "01":
+            order.SellerGLN = item[0] == "#12205" && ValidateGLN(item[1]) ? item[1] : order.SellerGLN;
+            order.SellerCompanyName = item[0] == "#12243" ? item[1] : order.SellerCompanyName;
+            order.SellerStreetName = item[0] == "#12246" ? item[1] : order.SellerStreetName;
+            order.SellerPostbox = item[0] == "#12247" ? item[1] : order.SellerPostbox;
+            order.BuyerGLN = item[0] == "#12215" && ValidateGLN(item[1]) ? item[1] : order.BuyerGLN;
+            // BuyerName2 for GLN auto correction
+            order.BuyerName2 = item[0] == "#12213" && String.IsNullOrEmpty(order.BuyerName) ? item[1] : order.BuyerName;
+            order.BuyerName = item[0] == "#12213" ? item[1] : order.BuyerName;
+            order.AccountingCost = item[0] == "#12203" ? item[1] : order.AccountingCost;
+            order.PurchaseOrderNumber = item[0] == "#12203" ? item[1] : order.PurchaseOrderNumber;
+            order.Currency = item[0] == "#12363" ? item[1] : order.Currency;
+            break;
+          case "02":
+            order.BuyerCompanyName = item[0] == "#12243" ? item[1] : order.BuyerCompanyName;
+            order.DeliveryStreetName = item[0] == "#12245" ? item[1] : order.DeliveryStreetName;
+            order.DeliveryPostbox = item[0] == "#12247" ? item[1] : order.DeliveryPostbox;
+            order.DeliveryCountry = item[0] == "#12248" ? item[1] : order.DeliveryCountry;
+            break;
+          case "11":
+            orderItem.LineNumber = item[0] == "#12414" ? item[1] : orderItem.LineNumber;
+            orderItem.SellerItemIdentification = item[0] == "#12401" ? item[1] : orderItem.SellerItemIdentification;
+            orderItem.Description = item[0] == "#12421" ? item[1] : orderItem.Description;
+            orderItem.UnitsOrdered = item[0] == "#12441" ? item[1] : orderItem.UnitsOrdered;
+            orderItem.UnitPrice = item[0] == "#12451" ? item[1] : orderItem.UnitPrice;
+            orderItem.RequestedDeliveryDate = item[0] == "#12465" ? item[1] : orderItem.RequestedDeliveryDate;
+            break;
+          case "12":
+            var note = new PyramidOrderItemNote();
+            note.LineNumber = item[0] == "#12414" ? item[1] : note.LineNumber;
+            note.Note = item[0] == "#12434" ? item[1] : note.Note;
+            if (item != null) orderItem.Note = note.LineNumber == orderItem.LineNumber ? note : orderItem.Note;
+            break;
+        }
+      }
+
+      // Exceptional case for GLN correction then BuyerName is valid GLN set GLN to BuyerName
+      order.BuyerGLN = !ValidateGLN(order.BuyerGLN) && ValidateGLN(order.BuyerName) ? order.BuyerName : order.BuyerGLN;
+      order.BuyerGLN = !ValidateGLN(order.BuyerGLN) && ValidateGLN(order.BuyerName2) ? order.BuyerName2 : order.BuyerGLN;
+
+      return order;
+    }
+
+    protected override UblIdentifier BuildId()
+    {
+      return new UblIdentifier(_pyramidOrder.PurchaseOrderNumber);
+    }
+    protected override UblText BuildAccountingCost()
+    {
+      return new UblText(_pyramidOrder.AccountingCost);
+    }
+    protected override UblDate BuildIssueDate()
+    {
+      return new UblDate(DateTime.Now);
+    }
+    protected override UblTime BuildIssueTime()
+    {
+      return new UblTime(DateTime.Now);
+    }
+
+    public void BuildIssueDate(DateTime issueDate)
+    {
+       // if set null then get db exception that date time is not in valid range
+      ConvertedOrder.IssueDate = new UblDate(issueDate);
+      ConvertedOrder.IssueTime = new UblTime(issueDate);
+    }
+    protected override UblCustomerParty BuildBuyerParty()
+    {
+      return new UblCustomerParty
+      {
+        Party = new UblParty()
+        {
+          PartyName = new UblPartyName(_pyramidOrder.BuyerCompanyName),
+          PartyIdentifications = new List<UblPartyIdentification>()
+          {
+            new UblPartyIdentification(new UblIdentifier
+            {
+              Value = _pyramidOrder.BuyerGLN,
+              SchemeAgencyId = "GLN",
+              SchemeAgencyName = "INX"
+            })
+          }
+        }
+      };
+    }
+
+    protected override UblSupplierParty BuildSellerParty()
+    {
+      return new UblSupplierParty()
+      {
+
+        Party = new UblParty()
+        {
+          PartyName = new UblPartyName() { Name = new UblName(_pyramidOrder.SellerCompanyName) },
+          PostalAddress = new UblAddress()
+          {
+            StreetName = new UblName(_pyramidOrder.SellerStreetName),
+            Postbox = new UblText(_pyramidOrder.SellerPostbox)
+          },
+          PartyIdentifications = new List<UblPartyIdentification>()
+          {
+            new UblPartyIdentification(new UblIdentifier
+            {
+              Value = _pyramidOrder.SellerGLN,
+              SchemeAgencyId = "GLN",
+              SchemeAgencyName = "INX"
+            })
+          },
+          
+        }
+      };
+    }
+
+    protected override List<UblDelivery> BuildDelivery()
+    {
+      return new List<UblDelivery> { new UblDelivery {
+          DeliveryParty = new UblParty(),
+          // Uses RequestedDeliveryPeriod Min Max period because all needed dates are just atached to order item
+          RequestedDeliveryPeriod = _pyramidOrder.Items.Any() ? new UblPeriod(_pyramidOrder.Items.Select(i => DateTime.ParseExact(i.RequestedDeliveryDate, "yyyy-MM-dd", CultureInfo.InvariantCulture)).Min(), _pyramidOrder.Items.Select(i => DateTime.ParseExact(i.RequestedDeliveryDate, "yyyy-MM-dd", CultureInfo.InvariantCulture)).Max()) : null,
+          DeliveryLocation = new UblLocation()
+          {
+            Address = new UblAddress()
+            {
+              Id = new UblIdentifier(_pyramidOrder.BuyerGLN, "GLN", "INX"),
+              StreetName = new UblName(_pyramidOrder.DeliveryStreetName),
+              CityName = new UblText(_pyramidOrder.DeliveryPostbox),
+              Country = new UblCountry(){IdentificationCode = new UblCode(_pyramidOrder.DeliveryCountry), Name = new UblName(_pyramidOrder.DeliveryCountry)}
+            }
+          }
+        }
+      };
+    }
+
+    protected override List<UblOrderLine> BuildLines()
+    {
+      return _pyramidOrder.Items.Select(i => new UblOrderLine()
+      {
+        LineItem = new UblLineItem()
+        {
+          Id = new UblIdentifier(i.LineNumber),
+          Delivery = new List<UblDelivery>()
+          {
+              new UblDelivery()
+              {
+                  RequestedDeliveryPeriod = new UblPeriod(DateTime.ParseExact(i.RequestedDeliveryDate, "yyyy-MM-dd", CultureInfo.InvariantCulture), DateTime.ParseExact(i.RequestedDeliveryDate, "yyyy-MM-dd", CultureInfo.InvariantCulture)),
+              }
+          },
+          Item = new UblItem()
+          {
+            SellersItemIdentification = new UblItemIdentification(){ Id = new UblIdentifier(i.SellerItemIdentification) },
+            Description = String.IsNullOrEmpty(i.Description) ? new UblText(i.SellerItemIdentification) : new UblText(i.Description)
+          },
+          Quantity = new UblQuantity() { Value = Convert.ToDecimal(i.UnitsOrdered, new NumberFormatInfo() { NumberDecimalSeparator = ",", CurrencyDecimalDigits = 2 }) },
+          Price = new UblPrice() { BaseQuantity = new UblQuantity() { Value = 1.00m }, PriceAmount = new UblAmount(Convert.ToDecimal(i.UnitPrice, new NumberFormatInfo() { NumberDecimalSeparator = ",", CurrencyDecimalDigits = 2}), UblCurrencyCodeContent.SEK, "#.##", NumberFormatInfo.InvariantInfo) }
+        }
+      }).ToList();
+    }
+
+    protected override UblDocumentReference BuildDocumentReferences()
+    {
+      return null;
+    }
+  }
+}

@@ -55,6 +55,11 @@
     <Compile Include="Implementation\LineBuilder.cs" />
     <Compile Include="Implementation\LinesBuilder.cs" />
     <Compile Include="Implementation\OrderBuilder.cs" />
+    <Compile Include="Old\PyramidOrder\Model\PyramidOrder.cs" />
+    <Compile Include="Old\PyramidOrder\Model\PyramidOrderItem.cs" />
+    <Compile Include="Old\PyramidOrder\Model\PyramidOrderItemNote.cs" />
+    <Content Include="Old\PyramidOrder\PyramidIncomingOrderBuilder.cs.txt" />
+    <Content Include="Old\PyramidOrder\PyramidOrderConverter.cs.txt" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Test.cs" />

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using FluentUbl.Implementation;
+using FluentUbl.Interfaces;
 using InExchange.Format.UBL;
 
 namespace FluentUbl
@@ -25,7 +24,7 @@ namespace FluentUbl
     protected abstract void BuildId(IOrderIdBuilder orderIdBuilder);
     protected abstract void BuildLines(IOrderLineBuilder orderLineBuilder);
 
-    protected virtual void Build(IOrderBuilder orderBuilder)
+    protected virtual void Build(Interfaces.IOrderBuilder orderBuilder)
     {
       
     }
@@ -43,7 +42,7 @@ namespace FluentUbl
 
   public class PyramidOrderBuilder : IncomingOrderBuilder
   {
-    protected override void Build(IOrderBuilder orderBuilder)
+    protected override void Build(Interfaces.IOrderBuilder orderBuilder)
     {
     }
 

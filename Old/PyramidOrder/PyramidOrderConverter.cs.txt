@@ -1,0 +1,23 @@
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using FluentUbl;
+
+namespace InExchange.CustomerSpecific.OrderConverters.Incoming.PyramidOrder
+{
+  public class PyramidOrderConverter : InExchange.Order.IncomingConversion.Interfaces.IOrderConverter
+  {
+    public virtual IEnumerable<OrderDomain> Convert(Stream input)
+    {
+      var streamReader = new StreamReader(input, Encoding.Default);
+
+      var orders = new List<OrderDomain>();
+
+      var convertedOrder = new PyramidIncomingOrderBuilder(streamReader.ReadToEnd()).BuildIncomingOrder();
+
+      orders.Add(convertedOrder);
+
+      return orders;
+    }      
+  }
+}

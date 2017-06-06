@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FluentUbl.Interfaces;
 using InExchange.Format.UBL;
 
 namespace FluentUbl.Implementation

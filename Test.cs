@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FluentUbl
+namespace FluentUbl.Test
 {
   public class Test
   {

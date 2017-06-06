@@ -4,7 +4,7 @@ using InExchange.Format.UBL;
 
 namespace FluentUbl.Implementation
 {
-  public class LinesBuilder : ILinesBuilder
+  public class LinesBuilder : Interfaces.ILinesBuilder
   {
     private List<UblOrderLine> _ublOrderLines;
 
@@ -13,7 +13,7 @@ namespace FluentUbl.Implementation
       _ublOrderLines = ublOrderLines;
     }
 
-    public ILinesBuilder AddLine(Action<ILineBuilder> action)
+    public Interfaces.ILinesBuilder AddLine(Action<Interfaces.ILineBuilder> action)
     {
       var line = new UblOrderLine()
       {

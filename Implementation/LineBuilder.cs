@@ -2,7 +2,7 @@ using InExchange.Format.UBL;
 
 namespace FluentUbl.Implementation
 {
-  public class LineBuilder : ILineBuilder
+  public class LineBuilder : Interfaces.ILineBuilder
   {
     private UblOrderLine _ublOrderLine = new UblOrderLine();
 
@@ -15,13 +15,13 @@ namespace FluentUbl.Implementation
       _ublOrderLine.LineItem = line;
     }
 
-    public ILineBuilder BuildId(string id)
+    public Interfaces.ILineBuilder BuildId(string id)
     {
       _ublOrderLine.LineItem.Id = new UblIdentifier(id);
       return this;
     }
     
-    public ILineBuilder BuildDescription(string description)
+    public Interfaces.ILineBuilder BuildDescription(string description)
     {
       _ublOrderLine.LineItem.Item = new UblItem() { Description = new UblText(description) };
       return this;

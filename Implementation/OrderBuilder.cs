@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using FluentUbl.Interfaces;
 using InExchange.Format.UBL;
 
 namespace FluentUbl.Implementation
 {
-  public class OrderBuilder : IOrderBuilder, IOrderIdBuilder, IOrderLineBuilder
+  public class OrderBuilder : Interfaces.IOrderBuilder, IOrderIdBuilder, IOrderLineBuilder
   {
     private UblOrder _ublOrder = UblDocument.Create<UblOrder>(UblProfiles.Bii6ProcurementExtended);
 
@@ -14,35 +15,35 @@ namespace FluentUbl.Implementation
       _ublOrder.OrderLine = new List<UblOrderLine>();
     }
 
-    public IOrderBuilder BuildId(string id)
+    public Interfaces.IOrderBuilder BuildId(string id)
     {
       _ublOrder.Id = new UblIdentifier(id);
       return this;
     }
 
-    public IOrderBuilder BuildIssueDate(DateTime date)
+    public Interfaces.IOrderBuilder BuildIssueDate(DateTime date)
     {
       _ublOrder.IssueDate = new UblDate(date);
       return this;
     }
 
-    public IOrderBuilder BuildIssueTime(DateTime time)
+    public Interfaces.IOrderBuilder BuildIssueTime(DateTime time)
     {
       _ublOrder.IssueTime = new UblTime(time);
       return this;
     }
 
-    public IOrderBuilder BuildBuyerParty(Func<IBuyerPartyBuilder, IBuyerPartyBuilder> buyerPartyBuilder)
+    public Interfaces.IOrderBuilder BuildBuyerParty(Func<IBuyerPartyBuilder, IBuyerPartyBuilder> buyerPartyBuilder)
     {
       buyerPartyBuilder.Invoke(new BuyerPartyBuilder(_ublOrder.BuyerCustomerParty));
       return this;
     }
-    public ILineBuilder BuildLine()
+    public Interfaces.ILineBuilder BuildLine()
     {
       return new LineBuilder();
     }
 
-    public IOrderBuilder BuildLines(Func<IEnumerable<ILineBuilder>> lineBuilder)
+    public Interfaces.IOrderBuilder BuildLines(Func<IEnumerable<Interfaces.ILineBuilder>> lineBuilder)
     {
       foreach (LineBuilder builder in lineBuilder())
       {
@@ -51,7 +52,7 @@ namespace FluentUbl.Implementation
       return this;
     }
 
-    public IOrderBuilder BuildLines(Action<ILinesBuilder> action)
+    public Interfaces.IOrderBuilder BuildLines(Action<Interfaces.ILinesBuilder> action)
     {
       var linesBuilder = new LinesBuilder(_ublOrder.OrderLine);
       action(linesBuilder);
