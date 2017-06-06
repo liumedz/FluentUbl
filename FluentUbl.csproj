@@ -45,6 +45,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Implementation\BuyerPartyBuilder.cs" />
+    <Compile Include="Interfaces\IBuyerPartyBuilder.cs" />
+    <Compile Include="Interfaces\ILineBuilder.cs" />
+    <Compile Include="Interfaces\ILinesBuilder.cs" />
+    <Compile Include="Interfaces\IOrderBuilder.cs" />
+    <Compile Include="Interfaces\IOrderIdBuilder.cs" />
+    <Compile Include="Interfaces\IOrderLineBuilder.cs" />
+    <Compile Include="Implementation\LineBuilder.cs" />
+    <Compile Include="Implementation\LinesBuilder.cs" />
+    <Compile Include="Implementation\OrderBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Test.cs" />
