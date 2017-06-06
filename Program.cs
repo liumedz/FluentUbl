@@ -241,9 +241,13 @@ namespace FluentUbl
 
   public class PyramidOrderBuilder : IncomingOrderBuilder
   {
+    protected override void Build(IOrderBuilder orderBuilder)
+    {
+    }
+
     protected override void BuildId(IOrderIdBuilder orderIdBuilder)
     {
-      orderIdBuilder.BuildId("MyID");
+
     }
 
     protected override void BuildLines(IOrderLineBuilder orderLineBuilder)
@@ -273,9 +277,7 @@ namespace FluentUbl
       order.BuildId("1")
         .BuildIssueDate(new DateTime())
         .BuildIssueTime(new DateTime()).BuildBuyerParty(buyer => buyer.SetGln("60").SetName("CompanyName"))
-
         .BuildLines(() => lines.Select(a => order.BuildLine().SetDescription(a.Id).SetId(a.Name))) 
-
         .BuildLines(linesBuilder =>
         {
           lines.ForEach((line => linesBuilder.AddLine(lineBuider => lineBuider.SetId(line.Id).SetDescription(line.Name))));
