@@ -15,6 +15,8 @@ namespace FluentUbl
     IOrderBuilder BuildIssueTime(DateTime time);
     IOrderBuilder BuildBuyerParty(Func<IBuyerPartyBuilder, IBuyerPartyBuilder> buyerPartyBuilder);
     IOrderBuilder BuildLines(Func<IEnumerable<ILineBuilder>> lineBuilder);
+    IOrderBuilder BuildLines(Action<ILinesBuilder> action);
+    ILineBuilder BuildLine();
     UblOrder GetUblOrder();
   }
 
@@ -26,7 +28,7 @@ namespace FluentUbl
 
   public interface ILinesBuilder
   {
-    ILineBuilder BuildLine();
+    ILinesBuilder AddLine(Action<ILineBuilder> action);
   }
 
   public interface ILineBuilder
@@ -42,6 +44,7 @@ namespace FluentUbl
     public OrderBuilder()
     {
       _ublOrder.BuyerCustomerParty = new UblCustomerParty();
+      _ublOrder.OrderLine = new List<UblOrderLine>();
     }
 
     public IOrderBuilder BuildId(string id)
@@ -67,10 +70,13 @@ namespace FluentUbl
       buyerPartyBuilder.Invoke(new BuyerPartyBuilder(_ublOrder.BuyerCustomerParty));
       return this;
     }
+    public ILineBuilder BuildLine()
+    {
+      return new LineBuilder();
+    }
 
     public IOrderBuilder BuildLines(Func<IEnumerable<ILineBuilder>> lineBuilder)
     {
-      _ublOrder.OrderLine = new List<UblOrderLine>();
       foreach (LineBuilder builder in lineBuilder())
       {
         _ublOrder.OrderLine.Add(builder.UblOrderLine);
@@ -78,8 +84,10 @@ namespace FluentUbl
       return this;
     }
 
-    public IOrderBuilder BuildLines(object unknown)
+    public IOrderBuilder BuildLines(Action<ILinesBuilder> action)
     {
+      var linesBuilder = new LinesBuilder(_ublOrder.OrderLine);
+      action(linesBuilder);
       return this;
     }
 
@@ -134,11 +142,16 @@ namespace FluentUbl
       _ublOrderLines = ublOrderLines;
     }
 
-    public ILineBuilder BuildLine()
+    public ILinesBuilder AddLine(Action<ILineBuilder> action)
     {
-      var line = new UblOrderLine();
+      var line = new UblOrderLine()
+      {
+        LineItem = new UblLineItem()
+      };
       _ublOrderLines.Add(line);
-      return new LineBuilder(line.LineItem);
+      var lineBuilder = new LineBuilder(line.LineItem);
+      action(lineBuilder);
+      return this;
     }
   }
 
@@ -180,12 +193,20 @@ namespace FluentUbl
     public string Name { set; get; }
   }
 
+  public static class LineBuilderExtension
+  {
+    static ILineBuilder Map<T>(this ILineBuilder data, Func<T, bool> predicate)
+    {
+      return new LineBuilder();
+    }
+  }
+
 
   public class Program
   {
     static void Main(string[] args)
     {
-      List<MyLine> myLines = new List<MyLine>()
+      List<MyLine> lines = new List<MyLine>()
       {
         new MyLine() { Id = "Id1", Name = "Name1" },
         new MyLine() { Id = "Id2", Name = "Name2" }
@@ -196,10 +217,13 @@ namespace FluentUbl
       order.BuildId("1")
         .BuildIssueDate(new DateTime())
         .BuildIssueTime(new DateTime()).BuildBuyerParty(buyer => buyer.SetGln("60").SetName("CompanyName"))
-        .BuildLines(() => myLines.Select(a => new LineBuilder().SetDescription("d").SetId("id")));
+        .BuildLines(() => lines.Select(a => order.BuildLine().SetDescription("d").SetId("id")))
+        .BuildLines(linesBuilder =>
+        {
+          lines.ForEach((line => linesBuilder.AddLine(lineBuider => lineBuider.SetId(line.Id).SetDescription(line.Name))));
+        });
 
       var ublOrder = order.GetUblOrder();
-
 
     }
   }
