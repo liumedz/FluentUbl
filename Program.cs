@@ -273,7 +273,9 @@ namespace FluentUbl
       order.BuildId("1")
         .BuildIssueDate(new DateTime())
         .BuildIssueTime(new DateTime()).BuildBuyerParty(buyer => buyer.SetGln("60").SetName("CompanyName"))
-        .BuildLines(() => lines.Select(a => order.BuildLine().SetDescription("d").SetId("id")))
+
+        .BuildLines(() => lines.Select(a => order.BuildLine().SetDescription(a.Id).SetId(a.Name))) 
+
         .BuildLines(linesBuilder =>
         {
           lines.ForEach((line => linesBuilder.AddLine(lineBuider => lineBuider.SetId(line.Id).SetDescription(line.Name))));
