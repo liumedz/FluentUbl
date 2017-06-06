@@ -7,6 +7,17 @@ using InExchange.Format.UBL;
 
 namespace FluentUbl
 {
+  public interface IOrderIdBuilder
+  {
+    IOrderBuilder BuildId(string id);
+  }
+
+  public interface IOrderLineBuilder
+  {
+    IOrderBuilder BuildLines(Func<IEnumerable<ILineBuilder>> lineBuilder);
+    IOrderBuilder BuildLines(Action<ILinesBuilder> action);
+    ILineBuilder BuildLine();
+  }
 
   public interface IOrderBuilder
   {
@@ -37,7 +48,7 @@ namespace FluentUbl
     ILineBuilder SetDescription(string description);
   }
 
-  public class OrderBuilder : IOrderBuilder
+  public class OrderBuilder : IOrderBuilder, IOrderIdBuilder, IOrderLineBuilder
   {
     private UblOrder _ublOrder = UblDocument.Create<UblOrder>(UblProfiles.Bii6ProcurementExtended);
 
@@ -201,6 +212,51 @@ namespace FluentUbl
     }
   }
 
+  public class OrderDomain
+  {
+    public UblOrder Order { set; get; }
+    public Guid OrderId { set; get; }
+  }
+
+  public abstract class IncomingOrderBuilder
+  {
+    protected abstract void BuildId(IOrderIdBuilder orderIdBuilder);
+    protected abstract void BuildLines(IOrderLineBuilder orderLineBuilder);
+
+    protected virtual void Build(IOrderBuilder orderBuilder)
+    {
+      
+    }
+    public virtual OrderDomain BuildIncomingOrder()
+    {
+      IOrderBuilder order = new OrderBuilder();
+
+      Build(order);
+      BuildId((IOrderIdBuilder) order);
+      BuildLines((IOrderLineBuilder) order);
+
+      return new OrderDomain { Order = order.GetUblOrder(), OrderId = Guid.NewGuid() };
+    }
+  }
+
+  public class PyramidOrderBuilder : IncomingOrderBuilder
+  {
+    protected override void BuildId(IOrderIdBuilder orderIdBuilder)
+    {
+      orderIdBuilder.BuildId("MyID");
+    }
+
+    protected override void BuildLines(IOrderLineBuilder orderLineBuilder)
+    {
+      List<MyLine> lines = new List<MyLine>()
+      {
+        new MyLine() { Id = "Id1", Name = "Name1" },
+        new MyLine() { Id = "Id2", Name = "Name2" }
+      };
+      orderLineBuilder.BuildLines(() => lines.Select(a => orderLineBuilder.BuildLine().SetDescription("d").SetId("id")));
+    }
+  }
+
 
   public class Program
   {
@@ -227,4 +283,5 @@ namespace FluentUbl
 
     }
   }
+
 }
